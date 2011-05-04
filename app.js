@@ -59,10 +59,12 @@ app.get('/stats/:suffix', function(req, res){
 		res.end("ERROR: " + error.message + '\n');		
 	})
 	.on('end', function (count) {
-		var propName, i, year,
+		var propName, i, year, decade,
 		    maxLabelsToPrint = 10, 
 		    finalLabels = [],
-		    finalYears = [];
+		    finalYears = []
+		    decades = {},
+		    finalDecades = [];
 
     // Lables
 		for (propName in labels) {
@@ -80,6 +82,7 @@ app.get('/stats/:suffix', function(req, res){
       res.write(finalLabels[i].label + ' : ' + finalLabels[i].count + '\n');
     }
     res.write('\n');
+    
     // Years
     for (propName in years) {
 			if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
@@ -93,11 +96,41 @@ app.get('/stats/:suffix', function(req, res){
     res.write('=======================\n');
   	for (i = 0; i < finalYears.length; i++) {
   	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
-      res.write(year + ' : ' + finalYears[i].count + '\n');
+      decade = finalYears[i].year;
+      if (decade > 0) {
+        decade = Math.floor((decade -1900)/10) * 10;
+      }
+      decades[decade] = (decades[decade] || 0) + finalYears[i].count;
+      res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');
+    }
+    res.write('\n');
+    
+    // Decades
+    for (propName in decades) {
+			if (typeof decades[propName] !== 'function' && decades.hasOwnProperty(propName)) {
+				finalDecades.push( { decade : propName , count : decades[propName] } );	
+			}
+		}
+		finalDecades.sort(function(a, b) {
+      return a.decade - b.decade;
+		});
+		res.write('By Decades\n');
+    res.write('=======================\n');
+    for (i = 0; i < finalDecades.length; i++) {
+      decade = finalDecades[i].decade;
+      if (decade > 0 ) {
+        decade = decade % 100;
+        decade = (decade === 0 ? '00' : decade);
+        decade += 's';
+      } else {
+        decade = 'unknown';
+      }
+      res.write(decade   + ' : ' + finalDecades[i].count + '\n');
     }
     res.end();
 	});
 });
+
 
 
 // Only listen on $ node app.js
