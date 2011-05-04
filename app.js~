@@ -38,7 +38,7 @@ app.get('/stats/:suffix', function(req, res){
   var labels = {},
       years = {};
   csv()
-  .fromPath(__dirname + '/my_discogs_' + req.params.suffix + '.csv', { columns: true })
+  .fromPath(__dirname + '/my_discogs_' + suffix + '.csv', { columns: true })
   .on('data', function(data,index) {
 		var year = parseInt(data.Released),
 		    label = data.Label;
