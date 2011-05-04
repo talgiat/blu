@@ -97,9 +97,7 @@ app.get('/stats/:suffix', function(req, res){
   	for (i = 0; i < finalYears.length; i++) {
   	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
       decade = finalYears[i].year;
-      if (decade > 0) {
-        decade = Math.floor((decade -1900)/10) * 10;
-      }
+      decade = Math.floor((decade)/10) * 10;
       decades[decade] = (decades[decade] || 0) + finalYears[i].count;
       res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');
     }
@@ -119,8 +117,6 @@ app.get('/stats/:suffix', function(req, res){
     for (i = 0; i < finalDecades.length; i++) {
       decade = finalDecades[i].decade;
       if (decade > 0 ) {
-        decade = decade % 100;
-        decade = (decade === 0 ? '00' : decade);
         decade += 's';
       } else {
         decade = 'unknown';
