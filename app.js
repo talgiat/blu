@@ -3,9 +3,9 @@
  * Module dependencies.
  */
 
+var csv = require('csv');
 var express = require('express');
-
-var app = module.exports = express.createServer();
+var app = express.createServer();
 
 // Configuration
 
@@ -33,6 +33,72 @@ app.get('/', function(req, res){
     title: 'Express'
   });
 });
+
+app.get('/test', function(req, res){
+  var labels = {},
+      years = {};
+  csv()
+  .fromPath(__dirname + '/my_discogs_t.csv', { columns: true })
+  .on('data', function(data,index) {
+		var year = parseInt(data.Released),
+		    label = data.Label;
+		// Year set
+		if (isNaN(year)) {
+		  year = -1;
+		}
+		years[year] = (years[year] || 0) + 1;
+		// Label set
+		labelSplit = label.split(',');
+		if (labelSplit.length > 1 && labelSplit[0].trim() === labelSplit[1].trim()) {
+		  label = labelSplit[0].trim();
+		}
+		labels[label] = (labels[label] || 0) + 1;
+    		
+  })
+	.on('error', function(error) { 
+		res.end("ERROR: " + error.message + '\n');		
+	})
+	.on('end', function (count) {
+		var propName, i, year,
+		    maxLabelsToPrint = 10, 
+		    finalLabels = [],
+		    finalYears = [];
+
+    // Lables
+		for (propName in labels) {
+			if (typeof labels[propName] !== 'function' && labels.hasOwnProperty(propName)) {
+				finalLabels.push( { label : propName , count : labels[propName] } );	
+			}
+		}
+		finalLabels.sort(function(a, b) {
+		  return b.count - a.count;
+		});
+		maxLabelsToPrint = Math.min(maxLabelsToPrint, finalLabels.length);
+    res.write('Top Labels\n');
+    res.write('=======================\n');
+    for (i = 0; i < maxLabelsToPrint; i++) {
+      res.write(finalLabels[i].label + ' : ' + finalLabels[i].count + '\n');
+    }
+    res.write('\n');
+    // Years
+    for (propName in years) {
+			if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
+				finalYears.push( { year : propName , count : years[propName] } );	
+			}
+		}
+		finalYears.sort(function(a, b) {
+		  return a.year - b.year;
+		});
+    res.write('By Years\n');
+    res.write('=======================\n');
+  	for (i = 0; i < finalYears.length; i++) {
+  	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
+      res.write(year + ' : ' + finalYears[i].count + '\n');
+    }
+    res.end();
+	});
+});
+
 
 // Only listen on $ node app.js
 
