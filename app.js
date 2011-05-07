@@ -46,7 +46,7 @@ app.post('/', function(req, res, next) {
       next(err);
     } else {
 	  var file = files.file;
-      console.log('uploaded %s to %s', file.filename, file.path);
+      console.log('Uploaded %s to %s', file.filename, file.path);
       if (file.type === 'text/csv') {
       	parseDiscogsCSV(file.path,res);
 	  } else {

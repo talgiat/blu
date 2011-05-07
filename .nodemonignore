@@ -1,0 +1,8 @@
+# .nodemonignore file
+#
+public/**/*
+views/**/*
+pids/*
+logs/*
+./.git/*
+./README
