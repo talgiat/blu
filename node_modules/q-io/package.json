@@ -1,0 +1,31 @@
+{
+    "name": "q-io",
+    "description": "Q Promise wrappers for Node's IO.",
+    "version": "0.0.4",
+    "homepage": "http://github.com/kriskowal/q-io/",
+    "author": "Kris Kowal <kris@cixar.com> (http://github.com/kriskowal/)",
+    "bugs": {
+        "mail": "kris@cixar.com",
+        "web": "http://github.com/kriskowal/q-io/issues"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "http://github.com/kriskowal/q-io/raw/master/LICENSE"
+        }
+    ],
+    "main": "lib/q-io.js",
+    "modules": {
+        "buffer-io": "./lib/q-io/buffer-io.js"
+    },
+    "dependencies": {
+        "q": ">=0.2.8"
+    },
+    "repository": {
+        "type": "git",
+        "url": "http://github.com/kriskowal/q-io.git"
+    },
+    "engines": {
+        "node": ">=0.2.0"
+    }
+}

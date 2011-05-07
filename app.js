@@ -5,7 +5,13 @@
 
 var csv = require('csv');
 var express = require('express');
-var app = express.createServer();
+var formidable = require('formidable');
+var form = require('connect-form');
+//var ZIP = require("zip");
+
+var app = express.createServer(
+	form({ keepExtensions: true })
+);
 
 // Configuration
 
@@ -29,53 +35,73 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
-  res.render('index', {
+  res.render('form', {
     title: 'Bacon Loving Unicorns will visualize your discogs collection'
   });
 });
 
-app.get('/stats/:suffix', function(req, res){
+app.post('/', function(req, res, next) {
+  req.form.complete(function(err, fields, files){
+    if (err) {
+      next(err);
+    } else {
+	  var file = files.file;
+      console.log('uploaded %s to %s', file.filename, file.path);
+      if (file.type === 'text/csv') {
+      	parseDiscogsCSV(file.path,res);
+	  } else {
+		next(new Error("File type must be csv"))
+	  }	
+    }
+  });
+
+  req.form.on('progress', function(bytesReceived, bytesExpected){
+    var percent = (bytesReceived / bytesExpected * 100) | 0;
+    console.log('Uploading: %d%', percent);
+  });
+});
+
+function parseDiscogsCSV(filename, res) {
   var labels = {},
       years = {};
   csv()
-  .fromPath(__dirname + '/my_discogs_' + req.params.suffix + '.csv', { columns: true })
+  .fromPath(filename, { columns: true })
   .on('data', function(data,index) {
-		var year = parseInt(data.Released),
-		    label = data.Label;
-		// Year set
-		if (isNaN(year)) {
-		  year = -1;
-		}
-		years[year] = (years[year] || 0) + 1;
-		// Label set
-		labelSplit = label.split(',');
-		if (labelSplit.length > 1 && labelSplit[0].trim() === labelSplit[1].trim()) {
-		  label = labelSplit[0].trim();
-		}
-		labels[label] = (labels[label] || 0) + 1;
-    		
+	var year = parseInt(data.Released),
+	    label = data.Label;
+	// Year set
+	if (isNaN(year)) {
+	  year = -1;
+	}
+	years[year] = (years[year] || 0) + 1;
+	// Label set
+	labelSplit = label.split(',');
+	if (labelSplit.length > 1 && labelSplit[0].trim() === labelSplit[1].trim()) {
+	  label = labelSplit[0].trim();
+	}
+	labels[label] = (labels[label] || 0) + 1;
   })
-	.on('error', function(error) { 
-		res.end("ERROR: " + error.message + '\n');		
-	})
-	.on('end', function (count) {
-		var propName, i, year, decade,
-		    maxLabelsToPrint = 10, 
-		    finalLabels = [],
-		    finalYears = []
-		    decades = {},
-		    finalDecades = [];
+  .on('error', function(error) { 
+	res.end("ERROR: " + error.message + '\n');		
+  })
+  .on('end', function (count) {
+	var propName, i, year, decade,
+		maxLabelsToPrint = 10, 
+		finalLabels = [],
+		finalYears = []
+		decades = {},
+		finalDecades = [];
 
     // Lables
-		for (propName in labels) {
-			if (typeof labels[propName] !== 'function' && labels.hasOwnProperty(propName)) {
-				finalLabels.push( { label : propName , count : labels[propName] } );	
-			}
-		}
-		finalLabels.sort(function(a, b) {
-		  return b.count - a.count;
-		});
-		maxLabelsToPrint = Math.min(maxLabelsToPrint, finalLabels.length);
+	for (propName in labels) {
+	  if (typeof labels[propName] !== 'function' && labels.hasOwnProperty(propName)) {
+		finalLabels.push( { label : propName , count : labels[propName] } );	
+	  }
+	}
+	finalLabels.sort(function(a, b) {
+	  return b.count - a.count;
+    });
+	maxLabelsToPrint = Math.min(maxLabelsToPrint, finalLabels.length);
     res.write('Top Labels\n');
     res.write('=======================\n');
     for (i = 0; i < maxLabelsToPrint; i++) {
@@ -85,34 +111,30 @@ app.get('/stats/:suffix', function(req, res){
     
     // Years
     for (propName in years) {
-			if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
-				finalYears.push( { year : propName , count : years[propName] } );	
-			}
-		}
-		finalYears.sort(function(a, b) {
-		  return a.year - b.year;
-		});
-    res.write('By Years\n');
-    res.write('=======================\n');
-  	for (i = 0; i < finalYears.length; i++) {
+	  if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
+		finalYears.push( { year : propName , count : years[propName] } );	
+	  }
+	}
+	finalYears.sort(function(a, b) {
+	  return a.year - b.year;
+	});
+    for (i = 0; i < finalYears.length; i++) {
   	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
       decade = finalYears[i].year;
       decade = Math.floor((decade)/10) * 10;
       decades[decade] = (decades[decade] || 0) + finalYears[i].count;
-      res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');
     }
-    res.write('\n');
     
     // Decades
     for (propName in decades) {
-			if (typeof decades[propName] !== 'function' && decades.hasOwnProperty(propName)) {
-				finalDecades.push( { decade : propName , count : decades[propName] } );	
-			}
-		}
-		finalDecades.sort(function(a, b) {
+	  if (typeof decades[propName] !== 'function' && decades.hasOwnProperty(propName)) {
+		finalDecades.push( { decade : propName , count : decades[propName] } );	
+	  }
+	}
+	finalDecades.sort(function(a, b) {
       return a.decade - b.decade;
-		});
-		res.write('By Decades\n');
+	});
+	res.write('By Decades\n');
     res.write('=======================\n');
     for (i = 0; i < finalDecades.length; i++) {
       decade = finalDecades[i].decade;
@@ -123,9 +145,17 @@ app.get('/stats/:suffix', function(req, res){
       }
       res.write(decade   + ' : ' + finalDecades[i].count + '\n');
     }
+    res.write('\n');
+	
+	// Print years
+	res.write('By Years\n');
+    res.write('=======================\n');
+	for (i = 0; i < finalYears.length; i++) {
+	  res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');	
+	}
     res.end();
-	});
-});
+  });
+};
 
 // Only listen on $ node app.js
 

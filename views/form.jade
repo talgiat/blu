@@ -1,0 +1,18 @@
+h1= title
+p
+  Very first version, to get a gilpse into your records collection do the following:
+  ul
+    li Export your discogs collection as a csv file
+    li You will have a zip file - inflate it
+    li Upload the inflated (csv) file here
+    li Get a first view of your collection!
+
+form(method="post", enctype="multipart/form-data")
+  fieldset
+    legend Upload Discogs Collection File
+    p
+      label(for="tal") Discogs collection file (.csv):
+    p
+      input(type="file", name="file")
+  p.buttons
+    input(type="submit", value="Upload")
