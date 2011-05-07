@@ -30,7 +30,7 @@ app.configure('production', function(){
 
 app.get('/', function(req, res){
   res.render('index', {
-    title: 'Express'
+    title: 'Bacon Loving Unicorns will visualize your discogs collection'
   });
 });
 
@@ -126,8 +126,6 @@ app.get('/stats/:suffix', function(req, res){
     res.end();
 	});
 });
-
-
 
 // Only listen on $ node app.js
 
