@@ -168,6 +168,11 @@ if (!module.parent) {
 // check directories 
 fs.stat('/tmp', function(err,stats) {
   if (err) {
-  	console.log("Got error\n", err);
+  	console.log(err);
+    fs.mkdir('/tmp', '755', function(err) {
+	  if (err) {
+		console.log(err)
+	  }
+	});
   }
 });
