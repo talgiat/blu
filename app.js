@@ -7,6 +7,7 @@ var csv = require('csv');
 var express = require('express');
 var formidable = require('formidable');
 var form = require('connect-form');
+var fs = require('fs');
 //var ZIP = require("zip");
 
 var app = express.createServer(
@@ -163,3 +164,10 @@ if (!module.parent) {
   app.listen(9827);
   console.log("Express server listening on port %d", app.address().port);
 }
+
+// check directories 
+fs.stat('/tmp', function(err,stats) {
+  if (err) {
+  	console.log("Got error\n", err);
+  }
+});
