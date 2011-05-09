@@ -8,6 +8,9 @@ var express = require('express');
 var formidable = require('formidable');
 var form = require('connect-form');
 var fs = require('fs');
+var request = require('request');
+var jsdom = require('jsdom').jsdom;
+
 //var ZIP = require("zip");
 
 var app = express.createServer(
@@ -157,6 +160,26 @@ function parseDiscogsCSV(filename, res) {
     res.end();
   });
 };
+
+
+app.get('/stats/:userId', function(req,res) {
+  parseCollectionPage(req.params.userId,1);
+})
+
+function parseCollectionPage(userId, pageNum) {
+  jsdom.env('http://www.discogs.com/collection?user=' + userId + '&page=' + pageNum, [ 'http://code.jquery.com/jquery-1.6.min.js'], function(errors, window) {
+    var last = window.$('.pagelink:last').text();
+    if (last) {
+      last = parseInt(last);
+    }
+    console.log(pageNum + ',last: ' + last);
+    if (pageNum === 1) {
+      for (var i=2; i <= last; i++) {
+        parseCollectionPage(userId,i);
+      }
+    }
+  });
+}
 
 // Only listen on $ node app.js
 
