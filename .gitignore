@@ -2,3 +2,4 @@
 logs/*
 pids/*
 .DS_Store
+.monitor
