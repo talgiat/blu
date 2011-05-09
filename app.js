@@ -167,7 +167,7 @@ function outputStats(labels,years,res) {
 
 function parseCollectionPagesMaker(userId,res) {
   var numOfPages = 0,
-      JQUERY_PATH = 'http://code.jquery.com/jquery-1.6.min.js',
+      JQUERY_PATH = './public/js/jquery-1.6.min.js',
       RELEASE_INFO_INDEX = 2,
       RELEASE_YEAR_INDEX = 4;
 
@@ -184,13 +184,13 @@ function parseCollectionPagesMaker(userId,res) {
         if (last) {
           last = parseInt(last);
           numOfPages = last;
-          console.log('Initializer, last: ' + last);
           for (var i=1; i <= last; i++) {
             that.parsePage(i);
           }
-          console.log('Invoked all');
+          console.log('Invoked all for' + userId);
         } else {
-          throw Error('Couldn\'t parse first page');
+          console.log('Couldn\'t parse first page for ' + userId);
+          res.end('Collection for: ' + userId + ' is not public');
         }
       });
     },
