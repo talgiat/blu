@@ -167,7 +167,7 @@ function outputStats(labels,years,res) {
 
 function parseCollectionPagesMaker(userId,res) {
   var numOfPages = 0,
-      JQUERY_PATH = './public/js/jquery-1.6.min.js',
+      JQUERY_PATH = __dirname + '/public/js/jquery-1.6.min.js',
       RELEASE_INFO_INDEX = 2,
       RELEASE_YEAR_INDEX = 4;
 
