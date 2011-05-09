@@ -39,12 +39,23 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
+  res.render('index', {
+    title: 'Bacon Loving Unicorns will visualize your discogs collection'
+  });
+});
+
+app.get('/stats/:userId', function(req,res) {
+  var parseCollectionPages = parseCollectionPagesMaker(req.params.userId,res);
+  parseCollectionPages.parse();
+})
+
+app.get('/fromCSV', function(req, res){
   res.render('form', {
     title: 'Bacon Loving Unicorns will visualize your discogs collection'
   });
 });
 
-app.post('/', function(req, res, next) {
+app.post('/fromCSV', function(req, res, next) {
   req.form.complete(function(err, fields, files){
     if (err) {
       next(err);
@@ -71,74 +82,68 @@ function parseDiscogsCSV(filename, res) {
   csv()
   .fromPath(filename, { columns: true })
   .on('data', function(data,index) {
-	var year = parseInt(data.Released),
-	    label = data.Label;
-	// Year set
-	if (isNaN(year)) {
-	  year = -1;
-	}
-	years[year] = (years[year] || 0) + 1;
-	// Label set
-	labelSplit = label.split(',');
-	if (labelSplit.length > 1 && labelSplit[0].trim() === labelSplit[1].trim()) {
-	  label = labelSplit[0].trim();
-	}
-	labels[label] = (labels[label] || 0) + 1;
+	  addYearStats(data.Released,years);
+	  addLabelStats(data.Label.split(',')[0],labels);
   })
   .on('error', function(error) { 
-	res.end("ERROR: " + error.message + '\n');		
+	  res.end("ERROR: " + error.message + '\n');		
   })
   .on('end', function (count) {
-	var propName, i, year, decade,
-		maxLabelsToPrint = 10, 
-		finalLabels = [],
-		finalYears = []
-		decades = {},
-		finalDecades = [];
+	  outputStats(labels,years,res);
+  });
+};
 
-    // Lables
-	for (propName in labels) {
-	  if (typeof labels[propName] !== 'function' && labels.hasOwnProperty(propName)) {
-		finalLabels.push( { label : propName , count : labels[propName] } );	
-	  }
-	}
-	finalLabels.sort(function(a, b) {
-	  return b.count - a.count;
-    });
-	maxLabelsToPrint = Math.min(maxLabelsToPrint, finalLabels.length);
-    res.write('Top Labels\n');
-    res.write('=======================\n');
-    for (i = 0; i < maxLabelsToPrint; i++) {
-      res.write(finalLabels[i].label + ' : ' + finalLabels[i].count + '\n');
+function outputStats(labels,years,res) {
+  var propName, i, year, decade,
+		  maxLabelsToPrint = 10, 
+		  finalLabels = [],
+		  finalYears = []
+		  decades = {},
+		  finalDecades = [];
+
+  // Labels
+  for (propName in labels) {
+    if (typeof labels[propName] !== 'function' && labels.hasOwnProperty(propName)) {
+	    finalLabels.push( { label : propName , count : labels[propName] } );	
     }
-    res.write('\n');
-    
-    // Years
-    for (propName in years) {
-	  if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
-		finalYears.push( { year : propName , count : years[propName] } );	
-	  }
-	}
-	finalYears.sort(function(a, b) {
-	  return a.year - b.year;
-	});
-    for (i = 0; i < finalYears.length; i++) {
-  	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
-      decade = finalYears[i].year;
-      decade = Math.floor((decade)/10) * 10;
-      decades[decade] = (decades[decade] || 0) + finalYears[i].count;
+  }
+  finalLabels.sort(function(a, b) {
+    return b.count - a.count;
+  });
+  maxLabelsToPrint = Math.min(maxLabelsToPrint, finalLabels.length);
+  res.write('Top Labels\n');
+  res.write('=======================\n');
+  for (i = 0; i < maxLabelsToPrint; i++) {
+    res.write(finalLabels[i].label + ' : ' + finalLabels[i].count + '\n');
+  }
+  res.write('\n');
+  
+  // Years
+  for (propName in years) {
+    if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
+	    finalYears.push( { year : propName , count : years[propName] } );	
     }
-    
-    // Decades
-    for (propName in decades) {
-	  if (typeof decades[propName] !== 'function' && decades.hasOwnProperty(propName)) {
-		finalDecades.push( { decade : propName , count : decades[propName] } );	
-	  }
-	}
-	finalDecades.sort(function(a, b) {
-      return a.decade - b.decade;
-	});
-	res.write('By Decades\n');
+  }
+  finalYears.sort(function(a, b) {
+    return a.year - b.year;
+  });
+  for (i = 0; i < finalYears.length; i++) {
+	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
+    decade = finalYears[i].year;
+    decade = Math.floor((decade)/10) * 10;
+    decades[decade] = (decades[decade] || 0) + finalYears[i].count;
+  }
+  
+  // Decades
+  for (propName in decades) {
+    if (typeof decades[propName] !== 'function' && decades.hasOwnProperty(propName)) {
+	    finalDecades.push( { decade : propName , count : decades[propName] } );	
+    }
+  }
+  finalDecades.sort(function(a, b) {
+    return a.decade - b.decade;
+  });
+  res.write('By Decades\n');
     res.write('=======================\n');
     for (i = 0; i < finalDecades.length; i++) {
       decade = finalDecades[i].decade;
@@ -149,36 +154,86 @@ function parseDiscogsCSV(filename, res) {
       }
       res.write(decade   + ' : ' + finalDecades[i].count + '\n');
     }
-    res.write('\n');
-	
+  res.write('\n');
+
 	// Print years
-	res.write('By Years\n');
-    res.write('=======================\n');
-	for (i = 0; i < finalYears.length; i++) {
-	  res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');	
-	}
-    res.end();
-  });
-};
+  res.write('By Years\n');
+  res.write('=======================\n');
+  for (i = 0; i < finalYears.length; i++) {
+    res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');	
+  }
+  res.end();
+}
 
+function parseCollectionPagesMaker(userId,res) {
+  var numOfPages = 0,
+      JQUERY_PATH = 'http://code.jquery.com/jquery-1.6.min.js',
+      RELEASE_INFO_INDEX = 2,
+      RELEASE_YEAR_INDEX = 4;
 
-app.get('/stats/:userId', function(req,res) {
-  parseCollectionPage(req.params.userId,1);
-})
-
-function parseCollectionPage(userId, pageNum) {
-  jsdom.env('http://www.discogs.com/collection?user=' + userId + '&page=' + pageNum, [ 'http://code.jquery.com/jquery-1.6.min.js'], function(errors, window) {
-    var last = window.$('.pagelink:last').text();
-    if (last) {
-      last = parseInt(last);
+  return {
+    stats : { 
+      labels : {},
+      years : {},
+      decades : {}
+    },
+    parse: function() {
+      var that = this;
+      jsdom.env('http://www.discogs.com/collection?user=' + userId + '&sort=artist,asc&page=1', [ JQUERY_PATH ], function(errors, window) {
+        var last = window.$('.pagelink:last').text();
+        if (last) {
+          last = parseInt(last);
+          numOfPages = last;
+          console.log('Initializer, last: ' + last);
+          for (var i=1; i <= last; i++) {
+            that.parsePage(i);
+          }
+          console.log('Invoked all');
+        } else {
+          throw Error('Couldn\'t parse first page');
+        }
+      });
+    },
+    parsePage: function(pageNum) {
+      var that = this;
+      jsdom.env('http://www.discogs.com/collection?user=' + userId + '&sort=artist,asc&page=' + pageNum, [ JQUERY_PATH ], function(errors, window) {
+        var $ = window.$;
+        $('table.cw_public tr:gt(0) td').each(function(index) {
+          var label = '',
+              year = '';
+          switch (index % 6) {
+           case RELEASE_INFO_INDEX:
+             label = $(this).find('a[href^="/label"]:first').text();
+              //.replace(/([\s]*\([\d]+\)$)/,'')); 
+             addLabelStats(label,that.stats.labels);
+             break;
+           case RELEASE_YEAR_INDEX:
+             year = $(this).text();
+             addYearStats(year,that.stats.years);
+             break;
+          }
+        }) ;
+        numOfPages = numOfPages -1;
+        console.log('Page left :' + numOfPages);
+        if (numOfPages === 0) {
+          console.log('Done for: ' + userId);
+          outputStats(that.stats.labels,that.stats.years,res);
+        }
+      });
     }
-    console.log(pageNum + ',last: ' + last);
-    if (pageNum === 1) {
-      for (var i=2; i <= last; i++) {
-        parseCollectionPage(userId,i);
-      }
-    }
-  });
+  }
+}
+
+function addLabelStats(label,labels) {
+	labels[label] = (labels[label] || 0) + 1;
+}
+
+function addYearStats(yearStr,years) {
+  var year = parseInt(yearStr);
+  if (isNaN(year)) {
+    year = -1;
+  }
+  years[year] = (years[year] || 0) + 1;
 }
 
 // Only listen on $ node app.js
