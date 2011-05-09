@@ -187,7 +187,7 @@ function parseCollectionPagesMaker(userId,res) {
           for (var i=1; i <= last; i++) {
             that.parsePage(i);
           }
-          console.log('Invoked all for' + userId);
+          console.log('Invoked for: ' + userId);
         } else {
           console.log('Couldn\'t parse first page for ' + userId);
           res.end('Collection for: ' + userId + ' is not public');
