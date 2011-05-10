@@ -43,7 +43,10 @@ app.get('/', function(req, res){
 });
 
 app.get('/stats/:userId', function(req,res) {
-  res.write('fecthing for ' + req.params.userId);
+  res.charset = 'ISO-8859-1';
+  res.header('Content-Type','text/plain');
+  res.write('Fecthing data for ' + req.params.userId);
+  res.write('\n');
   discogScraper.scrape(req.params.userId,function(error, stats) {
     if (error) {
       res.end(error);
