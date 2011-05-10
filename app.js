@@ -8,9 +8,7 @@ var express = require('express');
 var formidable = require('formidable');
 var form = require('connect-form');
 var fs = require('fs');
-var request = require('request');
-var jsdom = require('jsdom').jsdom;
-
+var discogScraper = require( __dirname + '/lib/discogs-scraper');
 //var ZIP = require("zip");
 
 var app = express.createServer(
@@ -45,9 +43,14 @@ app.get('/', function(req, res){
 });
 
 app.get('/stats/:userId', function(req,res) {
-  var parseCollectionPages = parseCollectionPagesMaker(req.params.userId,res);
-  parseCollectionPages.parse();
-  res.end('fecthing for ' + req.params.userId);
+  res.write('fecthing for ' + req.params.userId);
+  discogScraper.scrape(req.params.userId,function(error, stats) {
+    if (error) {
+      res.end(error);
+    } else {
+      outputStats(stats.labels, stats.years, res);
+    }
+  });
 })
 
 app.get('/fromCSV', function(req, res){
@@ -166,116 +169,6 @@ function outputStats(labels,years,res) {
   res.end();
 }
 
-function parseCollectionPagesMaker(userId,res) {
-  var numOfPages = 0,
-      encounteredError = false,
-      RELEASE_INFO_INDEX = 2,
-      RELEASE_YEAR_INDEX = 4;
-
-  return {
-    stats : { 
-      labels : {},
-      years : {},
-      decades : {}
-    },
-    parse: function() {
-      var that = this;
-      parseUrl('http://www.discogs.com/collection?user=' + userId + '&sort=artist,asc&page=1', function(error, $) {
-        if (error) {
-          console.log('Couldn\'t parse first page for ' + userId);
-          res.end('Collection for: ' + userId + ' is not public');
-        } else {
-          var last = $('.pagelink:last').text();
-          if (last) {
-            last = parseInt(last);
-            numOfPages = last;
-            for (var i=1; i <= last; i++) {
-              that.parsePage(i);
-            }
-            console.log('Invoked for: ' + userId);
-          } else {
-            console.log('Couldn\'t parse first page for ' + userId);
-            res.end('Collection for: ' + userId + ' is not public');
-          }
-        }
-      },true);
-    },
-    parsePage: function(pageNum) {
-      var that = this;
-      parseUrl('http://www.discogs.com/collection?user=' + userId + '&sort=artist,asc&page=' + pageNum, function(error, $) {
-        if (!encounteredError) {
-          if (error) {
-            encounteredError = true;
-            res.end('Error fetching user collection');s
-          } else {
-            $('table.cw_public tr:gt(0) td').each(function(index) {
-              var label = '',
-                  year = '';
-              switch (index % 6) {
-               case RELEASE_INFO_INDEX:
-                 label = $(this).find('a[href^="/label"]:first').text();
-                  //.replace(/([\s]*\([\d]+\)$)/,'')); 
-                 addLabelStats(label,that.stats.labels);
-                 break;
-               case RELEASE_YEAR_INDEX:
-                 year = $(this).text();
-                 addYearStats(year,that.stats.years);
-                 break;
-              }
-            });
-            numOfPages = numOfPages -1;
-            console.log('Page left :' + numOfPages);
-            if (numOfPages === 0) {
-              console.log('Done for: ' + userId);
-              outputStats(that.stats.labels,that.stats.years,res);
-            } 
-          }
-        }  
-      });
-    }
-  }
-}
-
-function parseUrl(url, callback, doit) {
-  request( {
-      uri : url,
-      pool : { maxSockets: 2 }
-    }, 
-    function (error, response, body) {
-      var options, window;
-      if (!error && response.statusCode === 200) {
-        options = { 
-          features: {
-            FetchExternalResources : false,
-            ProcessExternalResources : false
-          }
-        };
-        console.log(url)
-        if (doit) {
-          window = jsdom(body, null, options).createWindow();
-          jsdom.jQueryify(window, __dirname + '/public/js/jquery-1.6.min.js', function (window, jquery) {
-            callback(error,jquery);
-          });
-        }
-      } else {
-        error = error || "Not 200";
-        callback(error,null);
-      }
-    }
-  )
-}
-
-function addLabelStats(label,labels) {
-	labels[label] = (labels[label] || 0) + 1;
-}
-
-function addYearStats(yearStr,years) {
-  var year = parseInt(yearStr);
-  if (isNaN(year)) {
-    year = -1;
-  }
-  years[year] = (years[year] || 0) + 1;
-}
 
 // Only listen on $ node app.js
 
