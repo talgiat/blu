@@ -42,19 +42,25 @@ app.get('/', function(req, res){
   });
 });
 
+app.get('/stats1/:userId', function(req,res) {
+  res.write('Fecthing data for ' + req.params.userId + '\n');
+  setTimeout(function() { res.end('done');},10000);
+});
+
 app.get('/stats/:userId', function(req,res) {
   res.charset = 'ISO-8859-1';
   res.header('Content-Type','text/plain');
-  res.write('Fecthing data for ' + req.params.userId);
-  res.write('\n');
-  discogScraper.scrape(req.params.userId,function(error, stats) {
+  res.write('Fecthing data for ' + req.params.userId + '\n');
+  var start = new Date().getTime();
+  setTimeout(function() {discogScraper.scrape(req.params.userId,function(error, stats) {
     if (error) {
       res.end(error);
     } else {
+      res.write('Finished in ' + (new Date().getTime() - start)/1000 + '\n');
       outputStats(stats.labels, stats.years, res);
     }
-  });
-})
+  });},100);
+});
 
 app.get('/fromCSV', function(req, res){
   res.render('form', {
@@ -170,7 +176,7 @@ function outputStats(labels,years,res) {
     res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');	
   }
   res.end();
-}
+};
 
 
 // Only listen on $ node app.js
@@ -185,9 +191,9 @@ fs.stat('/tmp', function(err,stats) {
   if (err) {
   	console.log(err);
     fs.mkdir('/tmp', '755', function(err) {
-	  if (err) {
-		console.log(err)
-	  }
-	});
+	    if (err) {
+		    console.log(err)
+	    }
+	  });
   }
 });
