@@ -110,13 +110,17 @@ function outputStats(labels,years,res) {
   var propName, i, year, decade,
 		  maxLabelsToPrint = 10, 
 		  finalLabels = [],
-		  finalYears = []
+		  finalYears = [],
+		  minYear = 100000,
+		  maxYear = 0,
+		  hasUnkownYear = false,
+		  year,
 		  decades = {},
 		  finalDecades = [];
 
   // Labels
   for (propName in labels) {
-    if (typeof labels[propName] !== 'function' && labels.hasOwnProperty(propName)) {
+    if (labels.hasOwnProperty(propName)) {
 	    finalLabels.push( { label : propName , count : labels[propName] } );	
     }
   }
@@ -133,19 +137,23 @@ function outputStats(labels,years,res) {
   
   // Years
   for (propName in years) {
-    if (typeof years[propName] !== 'function' && years.hasOwnProperty(propName)) {
-	    finalYears.push( { year : propName , count : years[propName] } );	
+    if (years.hasOwnProperty(propName)) {
+	     year = propName;
+	     if (year < 0) {
+	       hasUnkownYear = true;
+	     } else {
+  	     if (year < minYear) {
+  	       minYear = year;
+  	     }
+  	     if (year > maxYear) {
+  	       maxYear = year;
+  	     }
+  	  }
+  	  decade = year;
+      decade = Math.floor((decade)/10) * 10;
+      decades[decade] = (decades[decade] || 0) + years[year];   	
     }
-  }
-  finalYears.sort(function(a, b) {
-    return a.year - b.year;
-  });
-  for (i = 0; i < finalYears.length; i++) {
-	  year = finalYears[i].year > 0 ? finalYears[i].year : 'unknown';
-    decade = finalYears[i].year;
-    decade = Math.floor((decade)/10) * 10;
-    decades[decade] = (decades[decade] || 0) + finalYears[i].count;
-  }
+  }  
   
   // Decades
   for (propName in decades) {
@@ -172,8 +180,15 @@ function outputStats(labels,years,res) {
 	// Print years
   res.write('By Years\n');
   res.write('=======================\n');
-  for (i = 0; i < finalYears.length; i++) {
-    res.write((finalYears[i].year > 0 ? finalYears[i].year : 'unknown') + ' : ' + finalYears[i].count + '\n');	
+  if (hasUnkownYear) {
+    res.write('unknown : ' + years[-1] + '\n');	
+  }
+  if (maxYear > 0) {
+    for (i = minYear; i <= maxYear; i++) {
+      if (years.hasOwnProperty(i)) {
+        res.write(i + ' : ' + years[i] + '\n');	
+      }  
+    }
   }
   res.end();
 };
