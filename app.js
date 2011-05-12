@@ -50,16 +50,15 @@ app.get('/stats1/:userId', function(req,res) {
 app.get('/stats/:userId', function(req,res) {
   res.charset = 'ISO-8859-1';
   res.header('Content-Type','text/plain');
-  res.write('Fecthing data for ' + req.params.userId + '\n');
   var start = new Date().getTime();
-  setTimeout(function() {discogScraper.scrape(req.params.userId,function(error, stats) {
+  discogScraper.scrape(req.params.userId,function(error, stats) {
     if (error) {
       res.end(error);
     } else {
-      res.write('Finished in ' + (new Date().getTime() - start)/1000 + '\n');
+      res.write('FINISHED IN ' + (new Date().getTime() - start)/1000 + '\n\n');
       outputStats(stats.labels, stats.years, res);
     }
-  });},100);
+  });
 });
 
 app.get('/fromCSV', function(req, res){
@@ -108,21 +107,32 @@ function parseDiscogsCSV(filename, res) {
 
 function outputStats(labels,years,res) {
   var propName, i, year, decade,
-		  maxLabelsToPrint = 10, 
+      notOnLabelCount,
+		  maxLabelsToPrint = 15, 
 		  finalLabels = [],
 		  finalYears = [],
 		  minYear = 100000,
 		  maxYear = 0,
 		  hasUnkownYear = false,
 		  year,
+		  label,
 		  decades = {},
 		  finalDecades = [];
 
   // Labels
+  
+  // Consolidate not on label variabtion
   for (propName in labels) {
     if (labels.hasOwnProperty(propName)) {
-	    finalLabels.push( { label : propName , count : labels[propName] } );	
+      if (propName.toLowerCase().indexOf("not on label") === 0) {
+        notOnLabelCount = (notOnLabelCount || 0) + labels[propName];
+      } else {
+	      finalLabels.push( { label : propName , count : labels[propName] } );	
+	    }  
     }
+  }
+  if (notOnLabelCount > 0) {
+    finalLabels.push( { label : 'Not On Label' , count : notOnLabelCount } );	
   }
   finalLabels.sort(function(a, b) {
     return b.count - a.count;
